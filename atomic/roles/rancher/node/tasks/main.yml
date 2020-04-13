@@ -1,0 +1,24 @@
+---
+
+# sudo docker run -d --privileged --restart=unless-stopped --net=host 
+#    -v /etc/kubernetes:/etc/kubernetes -v /var/run:/var/run 
+#    rancher/rancher-agent:v2.4.2 
+#    --server https://alpha --token fhmtb5k68blnnjl5c5vj86ldx7t69q9z52blhfbkwrpvb7vnhfn662 
+#    --ca-checksum fcec127a89a3457a4ea7e3c65e42c49c7cd01c612fff5830ded49b66d3e7dd5d --etcd --controlplane --worker
+
+- name: Run docker command to launch Rancher Agent
+  command: docker run -d --privileged --name rancher-agent --restart=unless-stopped --net=host -v /etc/kubernetes:/etc/kubernetes -v /var/run:/var/run rancher/rancher-agent:v2.4.2 --server https://{{master_ip}} --token {{cluster_token}} --ca-checksum {{ca_checksum}} --etcd --controlplane --worker
+
+# - name: Run Rancher Agent
+#   docker_container:
+#     name: rancher-agent
+#     image: rancher/rancher-agent:v2.4.2
+#     command: --server https://{{master_ip}}  --token {{token}} --ca-checksum {{ca_checksum}} --etcd --controlplane --worker
+#     state: started
+#     restart: yes
+#     privileged: yes
+#     networks:
+#       - name: host
+#     volumes:
+#       - /etc/kubernetes:/etc/kubernetes
+#       - /var/run:/var/run

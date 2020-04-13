@@ -1,0 +1,138 @@
+---
+
+- name: Check if EPEL repo is already configured.
+  stat: path={{ epel_repofile_path }}
+  register: epel_repofile_result
+ 
+- name: Install EPEL repo.
+  yum:
+    name: "{{ epel_repo_url }}"
+    state: present
+  register: result
+  when: not epel_repofile_result.stat.exists
+ 
+- name: Import EPEL GPG key.
+  rpm_key:
+    key: "{{ epel_repo_gpg_key_url }}"
+    state: present
+  when: not epel_repofile_result.stat.exists
+
+- name: upgrade all packages
+  yum:
+    name: '*'
+    state: latest
+
+- name: Check for reboot hint.
+  shell: LAST_KERNEL=$(rpm -q --last kernel | awk 'NR==1{sub(/kernel-/,""); print $1}'); CURRENT_KERNEL=$(uname -r); if [ $LAST_KERNEL != $CURRENT_KERNEL ]; then echo 'reboot'; else echo 'no'; fi
+  ignore_errors: true
+  register: reboot_hint
+
+- name: Reboot a slow machine that might have lots of updates to apply
+  reboot:
+    reboot_timeout: 3600
+  when: reboot_hint.stdout.find("reboot") != -1
+
+- name: Install docker dependencies yum-utils device-mapper-persistent-data lvm2
+  yum:
+    name: "{{ packages }}"
+  vars:
+    packages:
+    - yum-utils
+    - device-mapper-persistent-data
+    - lvm2
+    - python-pip
+
+- name: Install python docker pacakge
+  pip:
+    name: docker
+
+- name: Add Docker repo
+  get_url:
+    url: https://download.docker.com/linux/centos/docker-ce.repo
+    dest: /etc/yum.repos.d/docer-ce.repo
+  become: yes
+
+# - name: Enable Docker Edge repo
+#   ini_file:
+#     dest: /etc/yum.repos.d/docer-ce.repo
+#     section: 'docker-ce-edge'
+#     option: enabled
+#     value: 0
+#   become: yes
+
+# - name: Enable Docker Test repo
+#   ini_file:
+#     dest: /etc/yum.repos.d/docer-ce.repo
+#     section: 'docker-ce-test'
+#     option: enabled
+#     value: 0
+#   become: yes
+
+- name: Install Docker
+  package:
+    name: docker-ce
+    state: latest
+  become: yes
+
+- name: Start Docker service
+  service:
+    name: docker
+    state: started
+    enabled: yes
+  become: yes
+
+# firewall-cmd --permanent --add-port=22/tcp
+- name: Open firewall port 22/tcp needed for Rancher
+  command: firewall-cmd --permanent --add-port=22/tcp
+
+# firewall-cmd --permanent --add-port=80/tcp
+- name: Open firewall port 80/tcp needed for Rancher
+  command: firewall-cmd --permanent --add-port=80/tcp
+
+# firewall-cmd --permanent --add-port=443/tcp
+- name: Open firewall port 443/tcp needed for Rancher
+  command: firewall-cmd --permanent --add-port=443/tcp
+
+# firewall-cmd --permanent --add-port=2376/tcp
+- name: Open firewall port 2376/tcp needed for Rancher
+  command: firewall-cmd --permanent --add-port=2376/tcp
+
+# firewall-cmd --permanent --add-port=2379/tcp
+- name: Open firewall port 2379/tcp needed for Rancher
+  command: firewall-cmd --permanent --add-port=2379/tcp
+
+# firewall-cmd --permanent --add-port=2380/tcp
+- name: Open firewall port 2380/tcp needed for Rancher
+  command: firewall-cmd --permanent --add-port=2380/tcp
+
+# firewall-cmd --permanent --add-port=6443/tcp
+- name: Open firewall port 6443/tcp needed for Rancher
+  command: firewall-cmd --permanent --add-port=6443/tcp
+
+# firewall-cmd --permanent --add-port=8472/udp
+- name: Open firewall port 8472/udp needed for Rancher
+  command: firewall-cmd --permanent --add-port=8472/udp
+
+# firewall-cmd --permanent --add-port=9099/tcp
+- name: Open firewall port 9099/tcp needed for Rancher
+  command: firewall-cmd --permanent --add-port=9099/tcp
+  
+# firewall-cmd --permanent --add-port=10250/tcp
+- name: Open firewall port 10250/tcp needed for Rancher
+  command: firewall-cmd --permanent --add-port=10250/tcp
+  
+# firewall-cmd --permanent --add-port=10254/tcp
+- name: Open firewall port 10254/tcp needed for Rancher
+  command: firewall-cmd --permanent --add-port=10254/tcp
+  
+# firewall-cmd --permanent --add-port=30000-32767/tcp
+- name: Open firewall ports 30000-32767/tcp needed for Rancher
+  command: firewall-cmd --permanent --add-port=30000-32767/tcp
+  
+# firewall-cmd --permanent --add-port=30000-32767/udp
+- name: Open firewall ports 30000-32767/udp needed for Rancher
+  command: firewall-cmd --permanent --add-port=30000-32767/udp
+
+# firewall-cmd --reload
+- name: Reload firewall to activate changes
+  command: firewall-cmd --reload
