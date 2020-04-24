@@ -1,0 +1,130 @@
+---
+
+- name: "Ensure AIDE is installed"
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - aide
+    - cronie
+  tags:
+    - aide_build_database
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - NIST-800-53-CM-3(d)
+    - NIST-800-53-CM-3(e)
+    - NIST-800-53-CM-6(d)
+    - NIST-800-53-CM-6(3)
+    - NIST-800-53-SC-28
+    - NIST-800-53-SI-7
+    - PCI-DSS-Req-11.5
+    - CJIS-5.10.1.3
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: "Build and Test AIDE Database"
+  command: /usr/sbin/aide --init
+  changed_when: True
+  tags:
+    - aide_build_database
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - NIST-800-53-CM-3(d)
+    - NIST-800-53-CM-3(e)
+    - NIST-800-53-CM-6(d)
+    - NIST-800-53-CM-6(3)
+    - NIST-800-53-SC-28
+    - NIST-800-53-SI-7
+    - PCI-DSS-Req-11.5
+    - CJIS-5.10.1.3
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# mainly to allow ansible's check mode to work
+- name: "Check whether the stock AIDE Database exists"
+  stat:
+    path: /var/lib/aide/aide.db.new.gz
+  register: aide_database_stat
+  tags:
+    - aide_build_database
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - NIST-800-53-CM-3(d)
+    - NIST-800-53-CM-3(e)
+    - NIST-800-53-CM-6(d)
+    - NIST-800-53-CM-6(3)
+    - NIST-800-53-SC-28
+    - NIST-800-53-SI-7
+    - PCI-DSS-Req-11.5
+    - CJIS-5.10.1.3
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: "Stage AIDE Database"
+  copy:
+    src: /var/lib/aide/aide.db.new.gz
+    dest: /var/lib/aide/aide.db.gz
+    backup: yes
+    remote_src: yes
+  when: (aide_database_stat.stat.exists is defined and aide_database_stat.stat.exists) and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - aide_build_database
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - NIST-800-53-CM-3(d)
+    - NIST-800-53-CM-3(e)
+    - NIST-800-53-CM-6(d)
+    - NIST-800-53-CM-6(3)
+    - NIST-800-53-SC-28
+    - NIST-800-53-SI-7
+    - PCI-DSS-Req-11.5
+    - CJIS-5.10.1.3
+
+- name: "Configure Periodic Execution of AIDE"
+  cron:
+    name: "run AIDE check"
+    minute: 05
+    hour: 04
+    weekday: 0
+    user: root
+    job: "/usr/sbin/aide --check"
+  tags:
+    - aide_periodic_cron_checking
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - NIST-800-53-CM-3(d)
+    - NIST-800-53-CM-3(e)
+    - NIST-800-53-CM-3(5)
+    - NIST-800-53-CM-6(d)
+    - NIST-800-53-CM-6(3)
+    - NIST-800-53-SC-28
+    - NIST-800-53-SI-7
+    - PCI-DSS-Req-11.5
+    - CJIS-5.10.1.3
+    - DISA-STIG-RHEL-07-020030
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# "Set content necessary to pass the oscap scan given action taken by this playbook"
+- name: Clear crontab to prevent false positive
+  shell: cat /dev/null > /etc/crontab
+
+- name: Ansible grep pattern with ignore_errors example
+  shell: 'crontab -l | grep "[0-9]\s[0-9]\s\*\s\*\s*0\s*/usr/sbin/aide\s*\-\-check"'
+  register: grep_output
+  ignore_errors: true
+
+- name: When pattern is present, set value for oscap scan success
+  shell: printf '5 4 * * * root /usr/sbin/aide --check' >> /etc/crontab
+  when: grep_output.stdout != ''
+

@@ -1,0 +1,36 @@
+---
+
+- name: Replace monthly with daily in /etc/logrotate.conf
+  replace:
+    path: /etc/logrotate.conf
+    regexp: 'monthly'
+    replace: 'daily'
+
+- name: Replace monthly with daily in /etc/logrotate.conf
+  replace:
+    path: /etc/logrotate.conf
+    regexp: 'weekly'
+    replace: 'daily'
+
+- name: Keep 30 days worth of logs
+  replace:
+    path: /etc/logrotate.conf
+    regexp: 'rotate 4'
+    replace: 'rotate 30'
+
+- name: read the /etc/cron.daily/logrotate file
+  shell: cat /etc/cron.daily/logrotate
+  register: cron_daily_logrotate
+
+- name: Add logrotate command to /etc/cron.daily/logrotate file if not present
+  when: cron_daily_logrotate.stdout.find('/usr/sbin/logrotate -s /var/lib/logrotate/logrotate.status /etc/logrotate.conf') == -1
+  copy:
+    dest: "/Users/mdtutorials2/Documents/Ansible/remote_server.txt"
+    content: |
+      #!/bin/sh
+      /usr/sbin/logrotate -s /var/lib/logrotate/logrotate.status /etc/logrotate.conf
+      EXITVALUE=$?
+      if [ $EXITVALUE != 0 ]; then
+          /usr/bin/logger -t logrotate "ALERT exited abnormally with [$EXITVALUE]"
+      fi
+      exit 0

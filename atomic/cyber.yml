@@ -10,6 +10,4 @@
     - { role: cyber/grub }
     - { role: cyber/logrotate }
     - { role: cyber/aide }
-    - { role: prereq }
-    - { role: rancher/node }
     - { role: cyber/rpmhash }

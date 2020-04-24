@@ -1,0 +1,565 @@
+---
+
+- name: "Set fact: Package manager reinstall command (dnf)"
+  set_fact:
+    package_manager_reinstall_cmd: dnf reinstall -y
+  when: ansible_distribution == "Fedora" and True
+  tags:
+    - rpm_verify_hashes
+    - high_severity
+    - unknown_strategy
+    - high_complexity
+    - medium_disruption
+    - NIST-800-53-CM-6(d)
+    - NIST-800-53-CM-6(3)
+    - NIST-800-53-SI-7(1)
+    - NIST-800-171-3.3.8
+    - NIST-800-171-3.4.1
+    - PCI-DSS-Req-11.5
+    - CJIS-5.10.4.1
+    - DISA-STIG-RHEL-07-010020
+
+- name: "Set fact: Package manager reinstall command (yum)"
+  set_fact:
+    package_manager_reinstall_cmd: yum reinstall -y
+  when: (ansible_distribution == "RedHat" or ansible_distribution == "OracleLinux") and True
+  tags:
+    - rpm_verify_hashes
+    - high_severity
+    - unknown_strategy
+    - high_complexity
+    - medium_disruption
+    - NIST-800-53-CM-6(d)
+    - NIST-800-53-CM-6(3)
+    - NIST-800-53-SI-7(1)
+    - NIST-800-171-3.3.8
+    - NIST-800-171-3.4.1
+    - PCI-DSS-Req-11.5
+    - CJIS-5.10.4.1
+    - DISA-STIG-RHEL-07-010020
+
+- name: "Read files with incorrect hash"
+  shell: "rpm -Va | grep -E '^..5.* /(bin|sbin|lib|lib64|usr)/' | awk '{print $NF}'"
+  args:
+    warn: False # Ignore ANSIBLE0006, we can't fetch files with incorrect hash using rpm module
+  register: files_with_incorrect_hash
+  changed_when: False
+  when: (package_manager_reinstall_cmd is defined) and True
+  check_mode: no
+  tags:
+    - rpm_verify_hashes
+    - high_severity
+    - unknown_strategy
+    - high_complexity
+    - medium_disruption
+    - NIST-800-53-CM-6(d)
+    - NIST-800-53-CM-6(3)
+    - NIST-800-53-SI-7(1)
+    - NIST-800-171-3.3.8
+    - NIST-800-171-3.4.1
+    - PCI-DSS-Req-11.5
+    - CJIS-5.10.4.1
+    - DISA-STIG-RHEL-07-010020
+
+- name: "Reinstall packages of files with incorrect hash"
+  shell: "{{ package_manager_reinstall_cmd }} $(rpm -qf '{{ item }}')"
+  args:
+    warn: False # Ignore ANSIBLE0006, this task is flexible with regards to package manager
+  with_items: "{{ files_with_incorrect_hash.stdout_lines }}"
+  when: (package_manager_reinstall_cmd is defined and (files_with_incorrect_hash.stdout_lines | length > 0)) and True
+  tags:
+    - rpm_verify_hashes
+    - high_severity
+    - unknown_strategy
+    - high_complexity
+    - medium_disruption
+    - NIST-800-53-CM-6(d)
+    - NIST-800-53-CM-6(3)
+    - NIST-800-53-SI-7(1)
+    - NIST-800-171-3.3.8
+    - NIST-800-171-3.4.1
+    - PCI-DSS-Req-11.5
+    - CJIS-5.10.4.1
+    - DISA-STIG-RHEL-07-010020
+
+#- name: Install and enable NTP
+#  script:
+#    cmd: scripts/ntp_install.sh
+
+#- name: Setup NTP 
+#  script:
+#    cmd: scripts/ntp_configure.sh
+
+- name: "Ensure AIDE is installed"
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - aide
+  tags:
+    - aide_periodic_cron_checking
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - NIST-800-53-CM-3(d)
+    - NIST-800-53-CM-3(e)
+    - NIST-800-53-CM-3(5)
+    - NIST-800-53-CM-6(d)
+    - NIST-800-53-CM-6(3)
+    - NIST-800-53-SC-28
+    - NIST-800-53-SI-7
+    - PCI-DSS-Req-11.5
+    - CJIS-5.10.1.3
+    - DISA-STIG-RHEL-07-020030
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: "Configure Periodic Execution of AIDE"
+  cron:
+    name: "run AIDE check"
+    minute: 05
+    hour: 04
+    weekday: 0
+    user: root
+    job: "/usr/sbin/aide --check"
+  tags:
+    - aide_periodic_cron_checking
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - NIST-800-53-CM-3(d)
+    - NIST-800-53-CM-3(e)
+    - NIST-800-53-CM-3(5)
+    - NIST-800-53-CM-6(d)
+    - NIST-800-53-CM-6(3)
+    - NIST-800-53-SC-28
+    - NIST-800-53-SI-7
+    - PCI-DSS-Req-11.5
+    - CJIS-5.10.1.3
+    - DISA-STIG-RHEL-07-020030
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+#- name: Ensure Logrotate Runs Periodically 
+#  script:
+#    cmd: scripts/log_rotate.sh
+
+- name: Ensure libreswan is installed
+  package:
+    name: libreswan
+    state: present
+  tags:
+    - package_libreswan_installed
+    - medium_severity
+    - enable_strategy
+    - low_complexity
+    - low_disruption
+    - NIST-800-53-AC-17
+    - NIST-800-53-MA-4
+    - NIST-800-53-SC-9
+    - PCI-DSS-Req-4.1
+
+- name: Test for existence /boot/grub2/grub.cfg
+  stat:
+    path: /boot/grub2/grub.cfg
+  register: file_exists
+  tags:
+    - file_owner_grub2_cfg
+    - medium_severity
+    - configure_strategy
+    - low_complexity
+    - low_disruption
+    - NIST-800-53-AC-6(7)
+    - NIST-800-171-3.4.5
+    - PCI-DSS-Req-7.1
+    - CJIS-5.5.2.2
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Ensure owner 0 on /boot/grub2/grub.cfg
+  file:
+    path: /boot/grub2/grub.cfg
+    owner: 0
+  when: file_exists.stat.exists and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - file_owner_grub2_cfg
+    - medium_severity
+    - configure_strategy
+    - low_complexity
+    - low_disruption
+    - NIST-800-53-AC-6(7)
+    - NIST-800-171-3.4.5
+    - PCI-DSS-Req-7.1
+    - CJIS-5.5.2.2
+
+- name: XCCDF Value var_accounts_passwords_pam_faillock_unlock_time # promote to variable
+  set_fact:
+    var_accounts_passwords_pam_faillock_unlock_time: !!str 1800
+  tags:
+    - always
+
+- name: Add auth pam_faillock preauth unlock_time before pam_unix.so
+  pamd:
+    name: "{{ item }}"
+    type: auth
+    control: sufficient
+    module_path: pam_unix.so
+    new_type: auth
+    new_control: required
+    new_module_path: pam_faillock.so
+    module_arguments: 'preauth
+        silent
+        unlock_time={{ var_accounts_passwords_pam_faillock_unlock_time }}'
+    state: before
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_unlock_time
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - NIST-800-53-AC-7(b)
+    - NIST-800-171-3.1.8
+    - PCI-DSS-Req-8.1.7
+    - CJIS-5.5.3
+    - DISA-STIG-RHEL-07-010320
+  
+
+- name: Add unlock_time argument to pam_faillock preauth
+  pamd:
+    name: "{{ item }}"
+    type: auth
+    control: required
+    module_path: pam_faillock.so
+    module_arguments: 'preauth
+        silent
+        unlock_time={{ var_accounts_passwords_pam_faillock_unlock_time }}'
+    state: args_present
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_unlock_time
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - NIST-800-53-AC-7(b)
+    - NIST-800-171-3.1.8
+    - PCI-DSS-Req-8.1.7
+    - CJIS-5.5.3
+    - DISA-STIG-RHEL-07-010320
+  
+
+- name: Add auth pam_faillock authfail unlock_interval after pam_unix.so
+  pamd:
+    name: "{{ item }}"
+    type: auth
+    control: sufficient
+    module_path: pam_unix.so
+    new_type: auth
+    new_control: '[default=die]'
+    new_module_path: pam_faillock.so
+    module_arguments: 'authfail
+        unlock_time={{ var_accounts_passwords_pam_faillock_unlock_time }}'
+    state: after
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_unlock_time
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - NIST-800-53-AC-7(b)
+    - NIST-800-171-3.1.8
+    - PCI-DSS-Req-8.1.7
+    - CJIS-5.5.3
+    - DISA-STIG-RHEL-07-010320
+  
+
+- name: Add unlock_time argument to auth pam_faillock authfail
+  pamd:
+    name: "{{ item }}"
+    type: auth
+    control: '[default=die]'
+    module_path: pam_faillock.so
+    module_arguments: 'authfail
+        unlock_time={{ var_accounts_passwords_pam_faillock_unlock_time }}'
+    state: args_present
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_unlock_time
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - NIST-800-53-AC-7(b)
+    - NIST-800-171-3.1.8
+    - PCI-DSS-Req-8.1.7
+    - CJIS-5.5.3
+    - DISA-STIG-RHEL-07-010320
+  
+
+- name: Add account pam_faillock before pam_unix.so
+  pamd:
+    name: "{{ item }}"
+    type: account
+    control: required
+    module_path: pam_unix.so
+    new_type: account
+    new_control: required
+    new_module_path: pam_faillock.so
+    state: before
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_unlock_time
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - NIST-800-53-AC-7(b)
+    - NIST-800-171-3.1.8
+    - PCI-DSS-Req-8.1.7
+    - CJIS-5.5.3
+    - DISA-STIG-RHEL-07-010320
+
+#- name: Configure auditd to use audispd's syslog plugin 
+#  script:
+#    cmd: scripts/auditd_syslog.sh
+
+- name: XCCDF Value var_auditd_admin_space_left_action # promote to variable
+  set_fact:
+    var_auditd_admin_space_left_action: !!str single
+  tags:
+    - always
+
+- name: Configure auditd admin_space_left Action on Low Disk Space
+  lineinfile:
+    dest: /etc/audit/auditd.conf
+    line: "admin_space_left_action = {{ var_auditd_admin_space_left_action }}"
+    regexp: '^\s*admin_space_left_action\s*=\s*.*$'
+    state: present
+  #notify: reload auditd
+  tags:
+    - auditd_data_retention_admin_space_left_action
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - NIST-800-53-AU-1(b)
+    - NIST-800-53-AU-4
+    - NIST-800-53-AU-5(b)
+    - NIST-800-53-IR-5
+    - NIST-800-171-3.3.1
+    - PCI-DSS-Req-10.7
+    - CJIS-5.4.1.1
+    - DISA-STIG-RHEL-07-030340
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+#- name: Ensure auditd Collects Information on Kernel Module Loading and Unloading
+#  script:
+#     cmd: scripts/auditd_kernel.sh
+
+#- name: Record Attempts to Alter Time Through stime
+#  script:
+#    cmd: scripts/stime.sh
+
+#- name: Record Attempts to Alter the localtime File
+#  script:
+#    cmd: scripts/localtime.sh
+
+- name: Search for privileged commands
+  shell: "find / -xdev -type f -perm -4000 -o -type f -perm -2000 2>/dev/null | cat"
+  check_mode: no
+  register: find_result
+  tags:
+    - audit_rules_privileged_commands
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - NIST-800-53-AC-17(7)
+    - NIST-800-53-AU-1(b)
+    - NIST-800-53-AU-2(a)
+    - NIST-800-53-AU-2(c)
+    - NIST-800-53-AU-2(d)
+    - NIST-800-53-AU-2(4)
+    - NIST-800-53-AU-6(9)
+    - NIST-800-53-AU-12(a)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-53-IR-5
+    - NIST-800-171-3.1.7
+    - PCI-DSS-Req-10.2.2
+    - CJIS-5.4.1.1
+    - DISA-STIG-RHEL-07-030360
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the rule in /etc/audit/rules.d
+
+- name: Search /etc/audit/rules.d for audit rule entries
+  find:
+    paths: "/etc/audit/rules.d"
+    recurse: no
+    contains: "^.*path={{ item }} .*$"
+    patterns: "*.rules"
+  with_items:
+    - "{{ find_result.stdout_lines }}"
+  register: files_result
+  tags:
+    - audit_rules_privileged_commands
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - NIST-800-53-AC-17(7)
+    - NIST-800-53-AU-1(b)
+    - NIST-800-53-AU-2(a)
+    - NIST-800-53-AU-2(c)
+    - NIST-800-53-AU-2(d)
+    - NIST-800-53-AU-2(4)
+    - NIST-800-53-AU-6(9)
+    - NIST-800-53-AU-12(a)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-53-IR-5
+    - NIST-800-171-3.1.7
+    - PCI-DSS-Req-10.2.2
+    - CJIS-5.4.1.1
+    - DISA-STIG-RHEL-07-030360
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Overwrites the rule in rules.d
+  lineinfile:
+    path: "{{ item.1.path }}"
+    line: '-a always,exit -F path={{ item.0.item }} -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: no
+    regexp: "^.*path={{ item.0.item }} .*$"
+  with_subelements:
+    - "{{ files_result.results }}"
+    - files
+  tags:
+    - audit_rules_privileged_commands
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - NIST-800-53-AC-17(7)
+    - NIST-800-53-AU-1(b)
+    - NIST-800-53-AU-2(a)
+    - NIST-800-53-AU-2(c)
+    - NIST-800-53-AU-2(d)
+    - NIST-800-53-AU-2(4)
+    - NIST-800-53-AU-6(9)
+    - NIST-800-53-AU-12(a)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-53-IR-5
+    - NIST-800-171-3.1.7
+    - PCI-DSS-Req-10.2.2
+    - CJIS-5.4.1.1
+    - DISA-STIG-RHEL-07-030360
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Adds the rule in rules.d
+  lineinfile:
+    path: /etc/audit/rules.d/privileged.rules
+    line: '-a always,exit -F path={{ item.item }} -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  with_items:
+    - "{{ files_result.results }}"
+  when: item.matched == 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - NIST-800-53-AC-17(7)
+    - NIST-800-53-AU-1(b)
+    - NIST-800-53-AU-2(a)
+    - NIST-800-53-AU-2(c)
+    - NIST-800-53-AU-2(d)
+    - NIST-800-53-AU-2(4)
+    - NIST-800-53-AU-6(9)
+    - NIST-800-53-AU-12(a)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-53-IR-5
+    - NIST-800-171-3.1.7
+    - PCI-DSS-Req-10.2.2
+    - CJIS-5.4.1.1
+    - DISA-STIG-RHEL-07-030360
+
+# Adds/overwrites the rule in /etc/audit/audit.rules
+
+- name: Inserts/replaces the rule in audit.rules
+  lineinfile:
+    path: /etc/audit/audit.rules
+    line: '-a always,exit -F path={{ item.item }} -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+    regexp: "^.*path={{ item.item }} .*$"
+  with_items:
+    - "{{ files_result.results }}"
+  tags:
+    - audit_rules_privileged_commands
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - NIST-800-53-AC-17(7)
+    - NIST-800-53-AU-1(b)
+    - NIST-800-53-AU-2(a)
+    - NIST-800-53-AU-2(c)
+    - NIST-800-53-AU-2(d)
+    - NIST-800-53-AU-2(4)
+    - NIST-800-53-AU-6(9)
+    - NIST-800-53-AU-12(a)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-53-IR-5
+    - NIST-800-171-3.1.7
+    - PCI-DSS-Req-10.2.2
+    - CJIS-5.4.1.1
+    - DISA-STIG-RHEL-07-030360
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+#- name: Ensure auditd Collects System Administrator Actions
+#  script:
+#    cmd: scripts/admin_actions.sh
+
+#- name: Record Events that Modify th System's Network Environment
+#  script:
+#    cmd: scripts/net_env_events.sh
+
+#- name: Record Attempts to Alter Process and Session Initiation Information
+#  script:
+#    cmd: audit_session.sh
+
+#- name: Make the auditd Configuration Immutable
+#  script:
+#    cmd: scripts/auditd_immutable.sh
+
+#- name: Ensure auditd Collects Information on Exporting to Media (successful)
+#  script:
+#    cmd: scripts/audit_media.sh
+
+#- name: Record Events that Modify the System's Mandatory Access Controls
+#  script:
+#    cmd: scripts/audit_mac_policy.sh
+
+#- name: Enable Auditing for Processes Which Start Prior to the Audit Daemon
+#  script:
+#    cmd: scripts/audit_startup.sh
+
+

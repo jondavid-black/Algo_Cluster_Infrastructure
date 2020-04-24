@@ -1,0 +1,6 @@
+security_logs
+stig
+atomic/results
+atomic/roles/RedHatOfficial.rhel7_stig
+atomic/roles/geerlingguy.ntp
+

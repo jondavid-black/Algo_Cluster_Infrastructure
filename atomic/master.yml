@@ -4,6 +4,13 @@
 #  gather_facts: yes
   become: yes
   roles:
+    - { role: RedHatOfficial.rhel7_stig }
+    - { role: cyber/hardening }
+    - { role: geerlingguy.ntp }
+    - { role: cyber/grub }
+    - { role: cyber/logrotate }
+    - { role: cyber/aide }
     - { role: prereq }
     - { role: rancher/master }
+    - { role: cyber/rpmhash }
 

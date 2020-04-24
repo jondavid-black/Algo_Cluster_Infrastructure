@@ -1,0 +1,13 @@
+---
+
+- hosts: cluster
+#  gather_facts: yes
+  become: yes
+
+#  vars:
+#    oscap_profile: xccdf_org.ssgproject.content_profile_pci-dss
+#    oscap_profile: xccdf_org.ssgproject.content_profile_standard
+#    oscap_policy: ssg-centos7-ds.xml
+
+  roles:
+    - { role: cyber/ssg }

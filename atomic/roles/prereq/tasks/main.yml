@@ -1,21 +1,24 @@
 ---
 
-- name: Check if EPEL repo is already configured.
-  stat: path={{ epel_repofile_path }}
-  register: epel_repofile_result
+#- name: Check if EPEL repo is already configured.
+#  stat: path={{ epel_repofile_path }}
+#  register: epel_repofile_result
  
-- name: Install EPEL repo.
-  yum:
-    name: "{{ epel_repo_url }}"
-    state: present
-  register: result
-  when: not epel_repofile_result.stat.exists
+#- name: Install EPEL repo.
+#  yum:
+#    name: "{{ epel_repo_url }}"
+#    state: present
+#  register: result
+#  until: result is succeeded
+#  retries: 5
+#  delay: 10
+#  when: not epel_repofile_result.stat.exists
  
-- name: Import EPEL GPG key.
-  rpm_key:
-    key: "{{ epel_repo_gpg_key_url }}"
-    state: present
-  when: not epel_repofile_result.stat.exists
+#- name: Import EPEL GPG key.
+#  rpm_key:
+#    key: "{{ epel_repo_gpg_key_url }}"
+#    state: present
+#  when: not epel_repofile_result.stat.exists
 
 - name: upgrade all packages
   yum:
@@ -31,6 +34,13 @@
   reboot:
     reboot_timeout: 3600
   when: reboot_hint.stdout.find("reboot") != -1
+
+- name: Install epel
+  yum:
+    name: "{{ packages }}"
+  vars:
+    packages:
+    - epel-release
 
 - name: Install docker dependencies yum-utils device-mapper-persistent-data lvm2
   yum:
